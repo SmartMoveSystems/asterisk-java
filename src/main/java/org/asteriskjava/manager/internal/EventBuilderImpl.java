@@ -35,7 +35,7 @@ import org.asteriskjava.manager.event.ResponseEvent;
 import org.asteriskjava.manager.event.UserEvent;
 import org.asteriskjava.util.Log;
 import org.asteriskjava.util.LogFactory;
-import org.reflections.Reflections;
+import org.asteriskjava.util.ReflectionUtil;
 
 /**
  * Default implementation of the EventBuilder interface.
@@ -52,8 +52,8 @@ class EventBuilderImpl extends AbstractBuilder implements EventBuilder
 
     private static final Log logger = LogFactory.getLog(EventBuilderImpl.class);
 
-    private final static Set<Class< ? extends ManagerEvent>> knownManagerEventClasses = new Reflections(
-            "org.asteriskjava.manager.event").getSubTypesOf(ManagerEvent.class);
+    private final static Set<Class<ManagerEvent>> knownManagerEventClasses = ReflectionUtil
+            .loadClasses("org.asteriskjava.manager.event", ManagerEvent.class);
 
     EventBuilderImpl()
     {
@@ -68,10 +68,7 @@ class EventBuilderImpl extends AbstractBuilder implements EventBuilder
     {
         for (Class< ? extends ManagerEvent> managerEventClass : knownManagerEventClasses)
         {
-            if (!Modifier.isAbstract(managerEventClass.getModifiers()))
-            {
-                registerEventClass(managerEventClass);
-            }
+            registerEventClass(managerEventClass);
         }
     }
 
@@ -110,11 +107,12 @@ class EventBuilderImpl extends AbstractBuilder implements EventBuilder
     {
         Constructor< ? > defaultConstructor;
 
-        if (Modifier.isAbstract(clazz.getModifiers()))
+        if (!ManagerEvent.class.isAssignableFrom(clazz))
         {
-            throw new IllegalArgumentException(clazz + " is abstract");
+            throw new IllegalArgumentException(clazz + " is not a ManagerEvent");
         }
-        if (clazz.isInterface())
+
+        if ((clazz.getModifiers() & Modifier.ABSTRACT) != 0)
         {
             throw new IllegalArgumentException(clazz + " is abstract");
         }
@@ -122,15 +120,15 @@ class EventBuilderImpl extends AbstractBuilder implements EventBuilder
         try
         {
             defaultConstructor = clazz.getConstructor(Object.class);
-
-            if (!Modifier.isPublic(defaultConstructor.getModifiers()))
-            {
-                throw new IllegalArgumentException(clazz + " has no public default constructor");
-            }
         }
         catch (NoSuchMethodException ex)
         {
             throw new IllegalArgumentException(clazz + " has no usable constructor");
+        }
+
+        if ((defaultConstructor.getModifiers() & Modifier.PUBLIC) == 0)
+        {
+            throw new IllegalArgumentException(clazz + " has no public default constructor");
         }
 
         registeredEventClasses.put(eventType.toLowerCase(Locale.US), clazz);
