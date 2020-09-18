@@ -11,7 +11,7 @@
 
 
 	<properties>
-        <releaseVersion>3.6.0</releaseVersion>
+        <releaseVersion>3.6.0-sm0.1</releaseVersion>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
