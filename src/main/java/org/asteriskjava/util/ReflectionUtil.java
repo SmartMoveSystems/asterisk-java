@@ -34,7 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.jar.JarInputStream;
 
 /**
  * Utility class that provides helper methods for reflection that is used by the
@@ -332,20 +332,21 @@ public class ReflectionUtil
             if (packageURL.getProtocol().equals("jar"))
             {
                 String jarFileName;
-
-                Enumeration<JarEntry> jarEntries;
-                String entryName;
-
-                // build jar file name, then loop through entries
+                // Decode the packageURL to a String, this also removes the leading "jar:" prefix
                 jarFileName = URLDecoder.decode(packageURL.getFile(), "UTF-8");
-                jarFileName = jarFileName.substring(5, jarFileName.indexOf("!"));
+                jarFileName = jarFileName.substring(0, jarFileName.indexOf("!"));
                 logger.info(">" + jarFileName);
-                try (JarFile jf = new JarFile(jarFileName);)
+                URL jarUrl = new URL(jarFileName);
+
+                try (JarInputStream jis = new JarInputStream(jarUrl.openStream());)
                 {
-                    jarEntries = jf.entries();
-                    while (jarEntries.hasMoreElements())
+                    String entryName;
+
+                    // Loop through entries
+                    JarEntry jarEntry;
+                    while ((jarEntry = jis.getNextJarEntry())!= null)
                     {
-                        entryName = jarEntries.nextElement().getName();
+                        entryName = jarEntry.getName();
                         if (entryName.startsWith(packageName) && entryName.endsWith(".class"))
                         {
                             entryName = entryName.substring(packageName.length() + 1, entryName.lastIndexOf('.'));
